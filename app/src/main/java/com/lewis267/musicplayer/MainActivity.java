@@ -3,15 +3,11 @@ package com.lewis267.musicplayer;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
-import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import android.net.Uri;
-import android.content.ContentResolver;
-import android.database.Cursor;
 import android.view.Menu;
 import android.widget.ListView;
 import android.os.IBinder;
@@ -21,7 +17,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.view.MenuItem;
 import android.view.View;
-import com.lewis267.musicplayer.MusicService.MusicBinder;
+import com.lewis267.musicplayer.MusicPlayerService.MusicBinder;
 import android.widget.MediaController.MediaPlayerControl;
 
 public class MainActivity extends AppCompatActivity implements MediaPlayerControl {
@@ -33,7 +29,7 @@ public class MainActivity extends AppCompatActivity implements MediaPlayerContro
 
     private ArrayList<Song> songList;
     private ListView songView;
-    private MusicService musicSrv;
+    private MusicPlayerService musicSrv;
     private Intent playIntent;
     private boolean musicBound=false;
     private MusicController controller;
@@ -43,7 +39,7 @@ public class MainActivity extends AppCompatActivity implements MediaPlayerContro
     protected void onStart() {
         super.onStart();
         if(playIntent==null){
-            playIntent = new Intent(this, MusicService.class);
+            playIntent = new Intent(this, MusicPlayerService.class);
             bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
             startService(playIntent);
         }
@@ -52,33 +48,30 @@ public class MainActivity extends AppCompatActivity implements MediaPlayerContro
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Set the view to the main activity.
         setContentView(R.layout.activity_main);
 
+        // Check that the permission to read external
+        // storage has been granted.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
                     != PackageManager.PERMISSION_GRANTED) {
-
-                requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},1);
-
-                // MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE is an
-                // app-defined int constant
-
+                requestPermissions(new String[] {
+                        Manifest.permission.READ_EXTERNAL_STORAGE
+                }, 1);
                 return;
             }
         }
 
-        songView = findViewById(R.id.song_list);
-        songList = new ArrayList<>();
-
-        getSongList();
-
-        Collections.sort(songList, new Comparator<Song>(){
-            public int compare(Song a, Song b){
-                return a.getTitle().compareTo(b.getTitle());
-            }
-        });
+        // Obtain the list of songs on this device
+        // and sort them.
+        songList = DeviceResources.getAllSongsFromDevice(this);
+        Collections.sort(songList, (a, b) -> a.getTitle().compareTo(b.getTitle()));
 
         SongAdapter songAdt = new SongAdapter(this, songList);
+
+        songView = findViewById(R.id.song_list);
         songView.setAdapter(songAdt);
 
         setController();
@@ -147,52 +140,6 @@ public class MainActivity extends AppCompatActivity implements MediaPlayerContro
         }
     };
 
-    public void getSongList() {
-        ContentResolver musicResolver = getContentResolver();
-        Uri musicUri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-        Cursor musicCursor = musicResolver.query(musicUri, null, null, null, null);
-
-        if(musicCursor!=null) {
-            if(musicCursor.moveToFirst()){
-                //get columns
-                int titleColumn = musicCursor.getColumnIndex
-                        (android.provider.MediaStore.Audio.Media.TITLE);
-                int idColumn = musicCursor.getColumnIndex
-                        (android.provider.MediaStore.Audio.Media._ID);
-                int artistColumn = musicCursor.getColumnIndex
-                        (android.provider.MediaStore.Audio.Media.ARTIST);
-                int albumColumn = musicCursor.getColumnIndex
-                        (android.provider.MediaStore.Audio.Media.ALBUM);
-                int albumIDColumn = musicCursor.getColumnIndex
-                        (MediaStore.Audio.Media.ALBUM_ID);
-                //add songs to list
-                do {
-                    long thisId = musicCursor.getLong(idColumn);
-                    String thisTitle = musicCursor.getString(titleColumn);
-                    String thisArtist = musicCursor.getString(artistColumn);
-                    String thisAlbum = musicCursor.getString(albumColumn);
-                    String thisAlbumId = musicCursor.getString(albumIDColumn);
-
-                    Cursor cursor = getContentResolver().query(MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI,
-                            new String[] {MediaStore.Audio.Albums._ID, MediaStore.Audio.Albums.ALBUM_ART},
-                            MediaStore.Audio.Albums._ID+ "=?",
-                            new String[] {String.valueOf(thisAlbumId)},
-                            null);
-                    String albumArt = null;
-                    if (cursor != null && cursor.moveToFirst()) {
-                        albumArt = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Albums.ALBUM_ART));
-                    }
-                    if (cursor != null) cursor.close();
-
-                    songList.add(new Song(thisId, thisTitle, thisArtist, thisAlbum, albumArt));
-                }
-                while (musicCursor.moveToNext());
-            }
-
-            musicCursor.close();
-        }
-    }
-
     @Override
     public void start() {
         musicSrv.go();
@@ -225,9 +172,7 @@ public class MainActivity extends AppCompatActivity implements MediaPlayerContro
 
     @Override
     public boolean isPlaying() {
-        if(musicSrv!=null && musicBound)
-            return musicSrv.isPng();
-        return false;
+        return musicSrv != null && musicBound && musicSrv.isPng();
     }
 
     @Override
@@ -258,17 +203,7 @@ public class MainActivity extends AppCompatActivity implements MediaPlayerContro
     private void setController(){
         controller = new MusicController(this);
 
-        controller.setPrevNextListeners(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                playNext();
-            }
-        }, new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                playPrev();
-            }
-        });
+        controller.setPrevNextListeners(v -> playNext(), v -> playPrev());
 
         controller.setMediaPlayer(this);
         controller.setAnchorView(findViewById(R.id.song_list));

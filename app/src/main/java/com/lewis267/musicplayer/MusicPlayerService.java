@@ -16,7 +16,7 @@ import java.util.Random;
 import android.app.Notification;
 import android.app.PendingIntent;
 
-public class MusicService extends Service implements
+public class MusicPlayerService extends Service implements
         MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener,
         MediaPlayer.OnCompletionListener,
         AudioManager.OnAudioFocusChangeListener
@@ -64,8 +64,8 @@ public class MusicService extends Service implements
     }
 
     public class MusicBinder extends Binder {
-        MusicService getService() {
-            return MusicService.this;
+        MusicPlayerService getService() {
+            return MusicPlayerService.this;
         }
     }
 
