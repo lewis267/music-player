@@ -1,11 +1,13 @@
 package com.lewis267.musicplayer;
 
+import android.graphics.Bitmap;
 import android.media.Image;
+import android.support.annotation.NonNull;
 
 import java.sql.Time;
 import java.util.List;
 
-class Song {
+class Song implements Comparable {
     private long id;
     private String title;
     private String artist;
@@ -31,4 +33,9 @@ class Song {
     public Time getPlayTime() {return playTime;}
     public List<String> getPaths() {return paths;}
     public String getArt() {return art;}
+
+    @Override
+    public int compareTo(@NonNull Object o) {
+        return this.getTitle().compareTo(((Song)o).getTitle());
+    }
 }

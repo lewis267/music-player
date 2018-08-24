@@ -54,20 +54,18 @@ public class MainActivity extends AppCompatActivity implements MediaPlayerContro
 
         // Check that the permission to read external
         // storage has been granted.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[] {
-                        Manifest.permission.READ_EXTERNAL_STORAGE
-                }, 1);
-                return;
-            }
+        if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] {
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+            }, 1);
+            return;
         }
 
         // Obtain the list of songs on this device
         // and sort them.
         songList = DeviceResources.getAllSongsFromDevice(this);
-        Collections.sort(songList, (a, b) -> a.getTitle().compareTo(b.getTitle()));
+        songList.sort(Song::compareTo);
 
         SongAdapter songAdt = new SongAdapter(this, songList);
 

@@ -1,6 +1,7 @@
 package com.lewis267.musicplayer;
 
 import android.graphics.BitmapFactory;
+import android.support.annotation.NonNull;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -43,14 +44,18 @@ public class SongAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertedView, ViewGroup parent) {
+
+        if (convertedView == null) {
+
+        }
         //map to song layout
         LinearLayout songLay = (LinearLayout) songInf.inflate
                 (R.layout.song, parent, false);
 
         //get title and artist views
-        TextView songView = (TextView)songLay.findViewById(R.id.song_title);
-        TextView artistView = (TextView)songLay.findViewById(R.id.song_artist);
-        ImageView artView = (ImageView)songLay.findViewById(R.id.song_art);
+        TextView songView = songLay.findViewById(R.id.song_title);
+        TextView artistView = songLay.findViewById(R.id.song_artist);
+        ImageView artView = songLay.findViewById(R.id.song_art);
 
         //get song using position
         Song currSong = songs.get(position);
